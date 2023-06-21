@@ -12,67 +12,84 @@ const server = createServer(app).listen(port);
 
 const wss = new WebSocketServer({ server, path: "/ws" });
 
-// The updates received so far (updates.length gives the current version)
-/** @type {import("@codemirror/collab").Update[]} */
-let updates = [];
-
-// The current document
 const initialText = `# CodeMirror Collaboration
 
-This is a collaborative **Markdown** editor shared by all viewers of this page, who are connected to the backend.
+This is a collaborative **Markdown** editor shared by all viewers of this page. You just opened a new document, with your own personal link!
 
 Type here to see the output rendered below.
 
 Source code is available [here](https://github.com/ekzhang/cm-collab).`;
-let doc = Text.of(initialText.split("\n"));
 
-/** @type {((value: any) => void)[]} */
-let pending = [];
+class Document {
+  // The updates received so far (updates.length gives the current version)
+  /** @type {import("@codemirror/collab").Update[]} */
+  updates = [];
 
-function handleMessage(ws, message) {
-  const data = JSON.parse(message.toString());
-  console.log("Received:", data);
+  // The current document
+  doc = Text.of(initialText.split("\n"));
 
-  const resp = (value) => {
-    ws.send(JSON.stringify({ id: data.id, value }));
-  };
+  /** @type {((value: any) => void)[]} */
+  pending = [];
 
-  if (data.type == "pullUpdates") {
-    if (data.version < updates.length) {
-      resp(updates.slice(data.version));
-    } else {
-      pending.push(resp);
-    }
-  } else if (data.type == "pushUpdates") {
-    if (data.version != updates.length) {
-      resp(false);
-    } else {
-      for (let update of data.updates) {
-        // Convert the JSON representation to an actual ChangeSet instance
-        let changes = ChangeSet.fromJSON(update.changes);
-        updates.push({ changes, clientID: update.clientID });
-        doc = changes.apply(doc);
+  handleMessage(ws, message) {
+    const data = JSON.parse(message.toString());
+    console.log("Received:", data);
+
+    const resp = (value) => {
+      ws.send(JSON.stringify({ id: data.id, value }));
+    };
+
+    if (data.type == "pullUpdates") {
+      if (data.version < this.updates.length) {
+        resp(this.updates.slice(data.version));
+      } else {
+        this.pending.push(resp);
       }
-      resp(true);
-      // Notify pending requests
-      while (pending.length) pending.pop()(data.updates);
+    } else if (data.type == "pushUpdates") {
+      if (data.version != this.updates.length) {
+        resp(false);
+      } else {
+        for (let update of data.updates) {
+          // Convert the JSON representation to an actual ChangeSet instance
+          let changes = ChangeSet.fromJSON(update.changes);
+          this.updates.push({ changes, clientID: update.clientID });
+          this.doc = changes.apply(this.doc);
+        }
+        resp(true);
+        // Notify pending requests
+        while (this.pending.length) this.pending.pop()(data.updates);
+      }
+    } else if (data.type == "getDocument") {
+      resp({ version: this.updates.length, doc: this.doc.toString() });
     }
-  } else if (data.type == "getDocument") {
-    resp({ version: updates.length, doc: doc.toString() });
   }
 }
 
-wss.on("connection", (ws) => {
-  console.log("New connection");
-  ws.on("error", console.error);
-  ws.on("message", (message) => {
-    try {
-      handleMessage(ws, message);
-    } catch (e) {
-      console.log("Failed to handle user message:", e.toString());
-      return;
+/** @type {Map<string, Document>} */
+const documents = new Map();
+
+wss.on("connection", (ws, req) => {
+  const matches = req.url.match(/\/ws\/?\?([a-zA-Z-_]+)/);
+  if (matches) {
+    const id = matches[1];
+    console.log("New connection to document", id);
+
+    let doc = documents.get(id);
+    if (!doc) {
+      doc = new Document();
+      documents.set(id, doc);
     }
-  });
+
+    ws.on("error", console.error);
+    ws.on("message", (message) => {
+      try {
+        doc.handleMessage(ws, message);
+      } catch (e) {
+        console.log("Failed to handle user message:", e.toString());
+        return;
+      }
+    });
+  }
 });
 
 console.log(`Server listening on port ${port}`);

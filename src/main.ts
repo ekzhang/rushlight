@@ -1,5 +1,6 @@
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
+import { nanoid } from "nanoid";
 import remarkHtml from "remark-html";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
@@ -8,6 +9,10 @@ import { basicSetup, theme } from "./cmConfig";
 import { getDocument, peerExtension } from "./collab";
 import { Connection } from "./connection";
 import "./style.css";
+
+if (!window.location.search) {
+  window.location.search = "?" + nanoid(5);
+}
 
 function setText(text: string) {
   const output = document.getElementById("output")!;
@@ -18,7 +23,8 @@ function setText(text: string) {
 const conn = new Connection(
   (window.location.protocol === "https:" ? "wss://" : "ws://") +
     window.location.host +
-    "/ws"
+    "/ws" +
+    window.location.search
 );
 
 async function main() {
