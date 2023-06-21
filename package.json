@@ -23,6 +23,7 @@
     "@codemirror/state": "^6.2.1",
     "@codemirror/view": "^6.13.2",
     "express": "^4.18.2",
+    "nanoid": "^4.0.2",
     "reconnecting-websocket": "^4.4.0",
     "remark-html": "^15.0.2",
     "remark-parse": "^10.0.2",

@@ -1,25 +1,21 @@
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
-import ReconnectingWebSocket from "reconnecting-websocket";
 import remarkHtml from "remark-html";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
-import initialText from "../content.txt?raw";
 import { basicSetup, theme } from "./cmConfig";
+import { getDocument, peerExtension } from "./collab";
+import { Connection } from "./connection";
 import "./style.css";
 
-const ws = new ReconnectingWebSocket(
+const conn = new Connection(
   (window.location.protocol === "https:" ? "wss://" : "ws://") +
     window.location.host +
     "/ws"
 );
 
-ws.onmessage = (event) => {
-  console.log(event);
-};
-
-ws.send("hello!");
+let { version, doc } = await getDocument(conn);
 
 function setText(text: string) {
   const output = document.getElementById("output")!;
@@ -27,15 +23,16 @@ function setText(text: string) {
   output.innerHTML = String(file);
 }
 
-setText(initialText);
+setText(doc.toString());
 
 new EditorView({
-  doc: initialText,
+  doc,
   extensions: [
     theme,
     basicSetup,
     EditorView.lineWrapping,
     markdown(),
+    peerExtension(version, conn),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         setText(update.state.doc.toString());
