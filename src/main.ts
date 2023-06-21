@@ -10,7 +10,8 @@ import { getDocument, peerExtension } from "./collab";
 import { Connection } from "./connection";
 import "./style.css";
 
-if (!window.location.search) {
+// If there's no search string, generate one.
+if (!window.location.search || window.location.search.length !== 6) {
   window.location.search = "?" + nanoid(5);
 }
 
