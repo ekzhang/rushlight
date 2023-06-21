@@ -1,11 +1,25 @@
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
+import ReconnectingWebSocket from "reconnecting-websocket";
 import remarkHtml from "remark-html";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
+import initialText from "../content.txt?raw";
 import { basicSetup, theme } from "./cmConfig";
 import "./style.css";
+
+const ws = new ReconnectingWebSocket(
+  (window.location.protocol === "https:" ? "wss://" : "ws://") +
+    window.location.host +
+    "/ws"
+);
+
+ws.onmessage = (event) => {
+  console.log(event);
+};
+
+ws.send("hello!");
 
 function setText(text: string) {
   const output = document.getElementById("output")!;
@@ -13,7 +27,10 @@ function setText(text: string) {
   output.innerHTML = String(file);
 }
 
-let view = new EditorView({
+setText(initialText);
+
+new EditorView({
+  doc: initialText,
   extensions: [
     theme,
     basicSetup,
@@ -26,16 +43,4 @@ let view = new EditorView({
     }),
   ],
   parent: document.getElementById("editor")!,
-});
-
-view.dispatch({
-  changes: {
-    from: 0,
-    to: view.state.doc.length,
-    insert: `# CodeMirror Collaboration
-
-This is a collaborative **Markdown** editor shared by all viewers of this page, who are connected to the backend.
-
-Type here to see the output rendered below.`,
-  },
 });

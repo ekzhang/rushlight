@@ -1,0 +1,7 @@
+# CodeMirror Collaboration
+
+This is a collaborative **Markdown** editor shared by all viewers of this page, who are connected to the backend.
+
+Type here to see the output rendered below.
+
+Source code is available [here](https://github.com/ekzhang/cm-collab).

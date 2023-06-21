@@ -12,6 +12,8 @@ const server = createServer(app).listen(port);
 const wss = new WebSocketServer({ server, path: "/ws" });
 
 wss.on("connection", function connection(ws) {
+  console.log("New connection");
+
   ws.on("error", console.error);
 
   ws.on("message", function message(data) {
