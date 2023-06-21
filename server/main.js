@@ -69,7 +69,7 @@ class Document {
 const documents = new Map();
 
 wss.on("connection", (ws, req) => {
-  const matches = req.url.match(/\/ws\/?\?([a-zA-Z-_]+)/);
+  const matches = req.url.match(/\/ws\/?\?([a-zA-Z-_0-9]+)$/);
   if (matches) {
     const id = matches[1];
     console.log("New connection to document", id);
