@@ -1,5 +1,5 @@
 import { Update } from "@codemirror/collab";
-import { ChangeSet } from "@codemirror/state";
+import { ChangeSet, Text } from "@codemirror/state";
 import { ErrorReply, defineScript } from "@redis/client";
 import { WebSocket } from "ws";
 
@@ -24,6 +24,12 @@ end`,
   transformArguments: () => [], // not needed
 });
 
+function expectVersion(streamId: string, version: number) {
+  if (streamId !== `0-${version + 1}`) {
+    throw new Error(`Expected to read 0-${version + 1}, got ${streamId}`);
+  }
+}
+
 async function pullUpdates(id: string, version: number) {
   console.log(` - pullUpdates(${id}, ${version})`);
   const entries = await redis.executeIsolated((redis) =>
@@ -33,6 +39,9 @@ async function pullUpdates(id: string, version: number) {
     )
   );
   const updates = entries?.[0]?.messages ?? [];
+  if (updates.length) {
+    expectVersion(updates[0].id, version);
+  }
   return updates.map((u) => JSON.parse(u.message.d));
 }
 
@@ -57,7 +66,20 @@ async function pushUpdates(id: string, version: number, updates: Update[]) {
 
 async function getDocument(id: string) {
   console.log(` - getDocuments(${id})`);
-  return { version: 0, doc: initialText };
+  let version = 0;
+  let doc = Text.of(initialText.split("\n"));
+  const entries = await redis.xRead({ key: `doc:${id}`, id: `0-${version}` });
+  const updates = entries?.[0]?.messages ?? [];
+  if (updates.length) {
+    expectVersion(updates[0].id, version);
+  }
+  for (const u of updates) {
+    const update: Update = JSON.parse(u.message.d);
+    const changes = ChangeSet.fromJSON(update.changes);
+    doc = changes.apply(doc);
+    version++;
+  }
+  return { version, doc: doc.toString() };
 }
 
 export function handleConnection(id: string, ws: WebSocket) {
