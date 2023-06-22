@@ -1,0 +1,15 @@
+# Background services for local development.
+services:
+  postgres:
+    image: postgres:15.3-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 7672:5432
+
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - 7673:6379
