@@ -2,9 +2,9 @@ import express from "express";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 
-import { handleConnection } from "./connection.ts";
+import { handleConnection } from "./transform.ts";
 
-const port = Number(process.env.PORT || 7671);
+const port = Number(process.env.PORT || 6471);
 
 const app = express();
 app.use(express.static("dist")); // Serve frontend files
