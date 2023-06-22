@@ -27,11 +27,12 @@ async function pullUpdates(
   connection: Connection,
   version: number
 ): Promise<readonly Update[]> {
-  const updates: Update[] = await connection.request({
-    type: "pullUpdates",
-    version,
-  });
-  return updates.map((u) => ({
+  const resp: any = await connection.request({ type: "pullUpdates", version });
+  if (resp.status === "desync") {
+    window.alert("Server out of sync, reloading to recover");
+    window.location.reload();
+  }
+  return (resp.updates as Update[]).map((u) => ({
     changes: ChangeSet.fromJSON(u.changes),
     clientID: u.clientID,
   }));
