@@ -34,7 +34,7 @@ export class Connection {
         if (this.handlers.delete(id)) {
           reject(new Error("request timed out"));
         }
-      }, 5000); // 5-second timeout
+      }, 8000); // 8-second timeout
     });
   }
 }

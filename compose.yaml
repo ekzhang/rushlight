@@ -6,10 +6,10 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
     ports:
-      - 7672:5432
+      - 6472:5432
 
   redis:
     image: redis:7.0-alpine
     restart: always
     ports:
-      - 7673:6379
+      - 6473:6379

@@ -5,10 +5,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
   },
   server: {
-    port: 7680,
+    port: 6480,
     proxy: {
       "/ws": {
-        target: "ws://localhost:7671",
+        target: "ws://localhost:6471",
         changeOrigin: true,
         ws: true,
       },

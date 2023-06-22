@@ -23,7 +23,7 @@ npm install
 npm run dev
 ```
 
-Visit `http://localhost:7680` in your browser.
+Visit `http://localhost:6480` in your browser.
 
 ## Deployment
 
@@ -36,4 +36,4 @@ export DATABASE_URL=postgres://...
 npm start
 ```
 
-Listens on port 7671 by default, or the `PORT` environment variable if set.
+Listens on port 6471 by default, or the `PORT` environment variable if set.
