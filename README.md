@@ -1,8 +1,7 @@
 # cm-collab
 
-Basic demo app for a [collaborative](https://codemirror.net/examples/collab/)
-Markdown editor based on CodeMirror, communicating with a Node.js backend server
-over WebSocket.
+A tiny [collaborative](https://codemirror.net/examples/collab/) Markdown editor
+based on CodeMirror, communicating with a minimal WebSocket server and database.
 
 Supports multiple real-time documents, with live cursors. Based on CodeMirror's
 operational transformation extension. All coordination is handled by server
