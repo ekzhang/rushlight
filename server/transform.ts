@@ -3,7 +3,7 @@ import { ChangeSet, Text } from "@codemirror/state";
 import { ErrorReply, defineScript } from "@redis/client";
 import { WebSocket } from "ws";
 
-import { redis } from "./db.ts";
+import { redis, sql } from "./db.ts";
 
 const initialText = `# CodeMirror Collaboration
 
@@ -24,12 +24,6 @@ end`,
   transformArguments: () => [], // not needed
 });
 
-function expectVersion(streamId: string, version: number) {
-  if (streamId !== `0-${version + 1}`) {
-    throw new Error(`Expected to read 0-${version + 1}, got ${streamId}`);
-  }
-}
-
 async function pullUpdates(id: string, version: number) {
   console.log(` - pullUpdates(${id}, ${version})`);
   const entries = await redis.executeIsolated((redis) =>
@@ -39,14 +33,17 @@ async function pullUpdates(id: string, version: number) {
     )
   );
   const updates = entries?.[0]?.messages ?? [];
-  if (updates.length) {
-    expectVersion(updates[0].id, version);
+  if (updates.length && updates[0].id !== `0-${version + 1}`) {
+    return { status: "desync" };
   }
-  return updates.map((u) => JSON.parse(u.message.d));
+  return {
+    status: "ok",
+    updates: updates.map((u) => JSON.parse(u.message.d)),
+  };
 }
 
 async function pushUpdates(id: string, version: number, updates: Update[]) {
-  console.log(` - pushUpdates(${id}, ${version}, [${updates.length} updates])`);
+  console.log(` - pushUpdates(${id}, ${version}, [len: ${updates.length}])`);
   try {
     await redis.executeScript(addUpdates, [
       `doc:${id}`,
@@ -66,16 +63,24 @@ async function pushUpdates(id: string, version: number, updates: Update[]) {
 
 async function getDocument(id: string) {
   console.log(` - getDocuments(${id})`);
+
   let version = 0;
   let doc = Text.of(initialText.split("\n"));
+
+  const results =
+    await sql`SELECT content, version FROM documents WHERE id = ${id}`;
+  if (results.length) {
+    version = results[0].version;
+    doc = Text.of(results[0].content.split("\n"));
+  }
+
   const entries = await redis.xRead({ key: `doc:${id}`, id: `0-${version}` });
   const updates = entries?.[0]?.messages ?? [];
-  if (updates.length) {
-    expectVersion(updates[0].id, version);
+  if (updates.length && updates[0].id !== `0-${version + 1}`) {
+    throw new Error("Invariant violated, document is desynchronized");
   }
   for (const u of updates) {
-    const update: Update = JSON.parse(u.message.d);
-    const changes = ChangeSet.fromJSON(update.changes);
+    const changes = ChangeSet.fromJSON(JSON.parse(u.message.d).changes);
     doc = changes.apply(doc);
     version++;
   }
@@ -86,25 +91,22 @@ export function handleConnection(id: string, ws: WebSocket) {
   console.log("New connection to document", id);
 
   ws.on("error", console.error);
-  ws.on("message", (message) => {
+  ws.on("message", async (message) => {
     try {
       const data = JSON.parse(message.toString());
-
-      const resp = (value: any) => {
-        ws.send(JSON.stringify({ id: data.id, value }));
-      };
-
+      let value = null;
       if (data.type == "pullUpdates") {
-        pullUpdates(id, data.version).then(resp);
+        value = await pullUpdates(id, data.version);
       } else if (data.type == "pushUpdates") {
         const updates: Update[] = data.updates.map((u: any) => ({
           changes: ChangeSet.fromJSON(u.changes),
           clientID: u.clientID,
         }));
-        pushUpdates(id, data.version, updates).then(resp);
+        value = await pushUpdates(id, data.version, updates);
       } else if (data.type == "getDocument") {
-        getDocument(id).then(resp);
+        value = await getDocument(id);
       }
+      ws.send(JSON.stringify({ id: data.id, value }));
     } catch (e: any) {
       console.log("Failed to handle user message:", e.toString());
       return;
