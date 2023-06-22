@@ -1,7 +1,8 @@
+import { Update } from "@codemirror/collab";
 import { ChangeSet, Text } from "@codemirror/state";
 import express from "express";
 import { createServer } from "node:http";
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 
 const port = Number(process.env.PORT || 8080);
 
@@ -22,20 +23,19 @@ Source code is available [here](https://github.com/ekzhang/cm-collab).`;
 
 class Document {
   // The updates received so far (updates.length gives the current version)
-  /** @type {import("@codemirror/collab").Update[]} */
-  updates = [];
+  updates: Update[] = [];
 
   // The current document
   doc = Text.of(initialText.split("\n"));
 
-  /** @type {((value: any) => void)[]} */
-  pending = [];
+  // Requests waiting for updates
+  pending: ((value: any) => void)[] = [];
 
-  handleMessage(ws, message) {
+  handleMessage(ws: WebSocket, message: ArrayBuffer) {
     const data = JSON.parse(message.toString());
     console.log("Received:", data);
 
-    const resp = (value) => {
+    const resp = (value: any) => {
       ws.send(JSON.stringify({ id: data.id, value }));
     };
 
@@ -57,7 +57,9 @@ class Document {
         }
         resp(true);
         // Notify pending requests
-        while (this.pending.length) this.pending.pop()(data.updates);
+        while (this.pending.length) {
+          this.pending.pop()!(data.updates);
+        }
       }
     } else if (data.type == "getDocument") {
       resp({ version: this.updates.length, doc: this.doc.toString() });
@@ -65,11 +67,10 @@ class Document {
   }
 }
 
-/** @type {Map<string, Document>} */
-const documents = new Map();
+const documents: Map<string, Document> = new Map();
 
 wss.on("connection", (ws, req) => {
-  const matches = req.url.match(/\/ws\/?\?([a-zA-Z-_0-9]+)$/);
+  const matches = req.url!.match(/\/ws\/?\?([a-zA-Z-_0-9]+)$/);
   if (matches) {
     const id = matches[1];
     console.log("New connection to document", id);
@@ -83,8 +84,8 @@ wss.on("connection", (ws, req) => {
     ws.on("error", console.error);
     ws.on("message", (message) => {
       try {
-        doc.handleMessage(ws, message);
-      } catch (e) {
+        doc!.handleMessage(ws, message as Buffer);
+      } catch (e: any) {
         console.log("Failed to handle user message:", e.toString());
         return;
       }
