@@ -7,11 +7,7 @@ export default defineConfig({
   server: {
     port: 6480,
     proxy: {
-      "/ws": {
-        target: "ws://localhost:6471",
-        changeOrigin: true,
-        ws: true,
-      },
+      "/doc": "http://localhost:6471",
     },
   },
 });

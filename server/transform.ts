@@ -1,7 +1,6 @@
 import { Update } from "@codemirror/collab";
 import { ChangeSet, Text } from "@codemirror/state";
 import { ErrorReply, defineScript } from "@redis/client";
-import { WebSocket } from "ws";
 
 import { redis, sql } from "./db.ts";
 
@@ -92,31 +91,20 @@ async function getDocument(id: string) {
   return { version, doc: doc.toString() };
 }
 
-export function handleConnection(id: string, ws: WebSocket) {
-  console.log("New connection to document", id);
-
-  ws.on("error", console.error);
-  ws.on("message", async (message) => {
-    try {
-      const data = JSON.parse(message.toString());
-      let value = null;
-      if (data.type == "pullUpdates") {
-        value = await pullUpdates(id, data.version);
-      } else if (data.type == "pushUpdates") {
-        const updates: Update[] = data.updates.map((u: any) => ({
-          changes: ChangeSet.fromJSON(u.changes),
-          clientID: u.clientID,
-        }));
-        value = await pushUpdates(id, data.version, updates);
-      } else if (data.type == "getDocument") {
-        value = await getDocument(id);
-      }
-      ws.send(JSON.stringify({ id: data.id, value }));
-    } catch (e: any) {
-      console.log("Failed to handle user message:", e.toString());
-      return;
-    }
-  });
+export function handleMessage(id: string, data: any) {
+  if (data.type == "pullUpdates") {
+    return pullUpdates(id, data.version);
+  } else if (data.type == "pushUpdates") {
+    const updates: Update[] = data.updates.map((u: any) => ({
+      changes: ChangeSet.fromJSON(u.changes),
+      clientID: u.clientID,
+    }));
+    return pushUpdates(id, data.version, updates);
+  } else if (data.type == "getDocument") {
+    return getDocument(id);
+  } else {
+    throw new Error("Invalid message type");
+  }
 }
 
 // Periodically checkpoints old documents by reading the dirty list.
