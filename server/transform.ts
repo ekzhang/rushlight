@@ -153,6 +153,7 @@ async function runCompaction() {
       const { version } = await getDocument(id, true);
       await redis.xTrim(`doc:${id}`, "MINID", version + 1, {
         strategyModifier: "~",
+        LIMIT: 0,
       });
     } catch (err: any) {
       await redis.zAdd("doc-dirty", { score, value: id }, { NX: true });
