@@ -31,7 +31,7 @@ async function pullUpdates(id: string, version: number) {
   const entries = await redis.executeIsolated((redis) =>
     redis.xRead(
       { key: `doc:${id}`, id: `${version}-0` },
-      { BLOCK: 5000, COUNT: 512 }
+      { BLOCK: 5000, COUNT: 1024 }
     )
   );
   const updates = entries?.[0]?.messages ?? [];
@@ -65,7 +65,7 @@ async function pushUpdates(id: string, version: number, updates: Update[]) {
   return true;
 }
 
-async function getDocument(id: string) {
+async function getDocument(id: string, forceSnapshot = false) {
   console.log(` - getDocuments(${id})`);
 
   let version = 0;
@@ -88,7 +88,24 @@ async function getDocument(id: string) {
     doc = changes.apply(doc);
     version++;
   }
-  return { version, doc: doc.toString() };
+
+  // Create a snapshot if there were too many pending changes.
+  const content = doc.toString();
+  if (forceSnapshot || updates.length > 128) {
+    await sql`
+      INSERT INTO
+        documents AS d (id, content, version)
+      VALUES
+        (${id}, ${content}, ${version})
+      ON CONFLICT (id) DO UPDATE SET
+        content = EXCLUDED.content,
+        version = EXCLUDED.version
+      WHERE
+        d.version < ${version}
+    `;
+  }
+
+  return { version, doc: content };
 }
 
 export function handleMessage(id: string, data: any) {
@@ -116,7 +133,7 @@ export async function compactionTask() {
       console.error("Error during compaction:", err.toString());
     }
     // No new documents to clean up, wait for a little bit.
-    await new Promise((resolve) => setTimeout(resolve, 0.1 * compactionDelay));
+    await new Promise((resolve) => setTimeout(resolve, 0.2 * compactionDelay));
   }
 }
 
@@ -133,16 +150,7 @@ async function runCompaction() {
     }
     console.log(`Compacting doc:${id}`);
     try {
-      const { version, doc } = await getDocument(id);
-      await sql`
-        INSERT INTO
-          documents (id, content, version)
-        VALUES
-          (${id}, ${doc}, ${version})
-        ON CONFLICT (id) DO UPDATE SET
-          content = excluded.content,
-          version = excluded.version
-      `;
+      const { version } = await getDocument(id, true);
       await redis.xTrim(`doc:${id}`, "MINID", version + 1, {
         strategyModifier: "~",
       });
