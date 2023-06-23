@@ -134,11 +134,11 @@ export async function compactionTask() {
 
 async function runCompaction() {
   while (true) {
-    const resp = await redis.zmPop("doc-dirty", "MIN");
+    const resp = await redis.zPopMin("doc-dirty");
     if (resp === null) {
       break;
     }
-    const { score, value: id } = resp.elements[0];
+    const { score, value: id } = resp;
     if (Date.now() - score < compactionDelay) {
       await redis.zAdd("doc-dirty", { score, value: id }, { NX: true });
       break;
