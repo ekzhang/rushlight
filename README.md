@@ -1,7 +1,7 @@
 # cm-collab
 
 A tiny [collaborative](https://codemirror.net/examples/collab/) Markdown editor
-based on CodeMirror, communicating with a minimal WebSocket server and database.
+based on CodeMirror, communicating with a minimal server and database.
 
 Supports multiple real-time documents, with live cursors. Based on CodeMirror's
 operational transformation extension. All changes are resolved by server code,
