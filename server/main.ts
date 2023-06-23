@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 
-import { handleConnection } from "./transform.ts";
+import { compactionTask, handleConnection } from "./transform.ts";
 
 const port = Number(process.env.PORT || 6471);
 
@@ -20,5 +20,7 @@ wss.on("connection", (ws, req) => {
     handleConnection(id, ws);
   }
 });
+
+compactionTask();
 
 console.log(`Server listening on port ${port}`);
