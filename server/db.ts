@@ -28,6 +28,6 @@ await sql`
   CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
     content TEXT NOT NULL,
-    version BIGINT NOT NULL
+    version INTEGER NOT NULL
   );
 `;
