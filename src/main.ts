@@ -6,8 +6,7 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 
 import { basicSetup, theme } from "./cmConfig";
-import { getDocument, peerExtension } from "./collab";
-import { Connection } from "./connection";
+import { Connection, getDocument, peerExtension } from "./collab";
 import "./style.css";
 
 // If there's no search string, generate one.
@@ -21,12 +20,7 @@ function setText(text: string) {
   output.innerHTML = String(file);
 }
 
-const conn = new Connection(
-  (window.location.protocol === "https:" ? "wss://" : "ws://") +
-    window.location.host +
-    "/ws" +
-    window.location.search
-);
+const conn = new Connection("/doc/" + window.location.search.substring(1));
 
 async function main() {
   let { version, doc } = await getDocument(conn);

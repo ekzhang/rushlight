@@ -1,25 +1,23 @@
 import express from "express";
-import { createServer } from "node:http";
-import { WebSocketServer } from "ws";
 
-import { compactionTask, handleConnection } from "./transform.ts";
+import { compactionTask, handleMessage } from "./transform.ts";
 
 const port = Number(process.env.PORT || 6471);
 
 const app = express();
 app.use(express.static("dist")); // Serve frontend files
 
-const server = createServer(app).listen(port);
-
-const wss = new WebSocketServer({ server, path: "/ws" });
-
-wss.on("connection", (ws, req) => {
-  const matches = req.url!.match(/\/ws\/?\?([a-zA-Z-_0-9]+)$/);
-  if (matches) {
-    const id = matches[1];
-    handleConnection(id, ws);
+app.post("/doc/:id", express.json(), async (req, res) => {
+  const id = req.params.id;
+  try {
+    res.json(await handleMessage(id, req.body));
+  } catch (e: any) {
+    console.log("Failed to handle user message:", e.toString());
+    res.status(400).send(e.toString());
   }
 });
+
+app.listen(port);
 
 compactionTask();
 

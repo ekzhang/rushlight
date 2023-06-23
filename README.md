@@ -5,10 +5,13 @@ based on CodeMirror, communicating with a minimal WebSocket server and database.
 
 Supports multiple real-time documents, with live cursors. Based on CodeMirror's
 operational transformation extension. All coordination is handled by server
-code, fully customizable for needs like authentication and rate limiting.
+code, fully customizable for needs like authentication and rate limiting. Also,
+it's designed to be as easy to deploy as possible (read: boring) — it even
+avoids WebSockets entirely by relying on HTTP/2.
 
-Unlike most toy examples, the backend is stateless. All documents are stored in
-Postgres, and real-time changes are resolved over Redis, with compaction.
+Unlike most toy examples, this application persists data and cleans up database
+memory. Documents are stored in Postgres, and real-time changes are resolved
+over Redis, with compaction.
 
 An experiment by [Eric Zhang](https://www.ekzhang.com/).
 
