@@ -22,6 +22,9 @@ export class Connection {
       body: JSON.stringify({ id, ...value }),
       headers: { "Content-Type": "application/json" },
     });
+    if (resp.status !== 200) {
+      throw new Error(`Request failed with status ${resp.status}`);
+    }
     return await resp.json();
   }
 }
@@ -98,6 +101,7 @@ export function peerExtension(startVersion: number, connection: Connection) {
           await pushUpdates(connection, version, updates);
           this.failures = 0;
         } catch (e) {
+          console.error(e);
           await this.failureSleep();
         }
         this.pushing = false;
@@ -116,6 +120,7 @@ export function peerExtension(startVersion: number, connection: Connection) {
             this.failures = 0;
             this.view.dispatch(receiveUpdates(this.view.state, updates));
           } catch (e) {
+            console.error(e);
             await this.failureSleep();
           }
         }
