@@ -121,8 +121,12 @@ async function getDocumentInternal(id: string): Promise<{
     throw new Error("Invariant violated, document is desynchronized");
   }
   for (const u of updates) {
-    const changes = ChangeSet.fromJSON(JSON.parse(u.message.d).changes);
-    doc = changes.apply(doc);
+    try {
+      const changes = ChangeSet.fromJSON(JSON.parse(u.message.d).changes);
+      doc = changes.apply(doc);
+    } catch (err: any) {
+      console.error("Error applying update:", err.toString());
+    }
   }
 
   return {
