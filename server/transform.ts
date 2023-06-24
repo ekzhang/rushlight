@@ -1,10 +1,27 @@
-import { Update } from "@codemirror/collab";
 import { ChangeSet, Text } from "@codemirror/state";
 import { ErrorReply, defineScript } from "@redis/client";
 
 import { redis, sql } from "./db.ts";
 
-const compactionDelay = 1000 * 30; // 30 seconds
+/**
+ * How often to compact the document history, in milliseconds.
+ *
+ * This is the interval at which streams are checkpointed, regardless of how
+ * many server replicas are running. Each modified document is queued for
+ * compaction. On each interval, the database is updated to reflect new changes,
+ * while the updates older than the previous version are removed from the
+ * document's Redis stream.
+ *
+ * The tradeoff here is between memory usage and performance. A smaller interval
+ * will result in more frequent compaction, lowering Redis's memory usage, but
+ * requiring more frequent database updates and potentially desynchronizing with
+ * slower clients. A larger interval will mean updates are stored for longer,
+ * putting more memory pressure on Redis.
+ *
+ * The current value has been set empirically as a balance between these
+ * tradeoffs, between Postgres and Redis. Shorter intervals also work.
+ */
+const compactionInterval = 1000 * 30; // 30 seconds
 
 const initialText = `# CodeMirror Collaboration
 
@@ -21,6 +38,20 @@ const addUpdates = defineScript({
     local version = ARGV[1]
     for i = 2, #ARGV do
       redis.call("XADD", KEYS[1], (version + i - 1) .. "-0", "d", ARGV[i])
+    end
+  `,
+  transformArguments: () => [], // not needed
+});
+
+// Trim entries from a stream and delete it if it's empty.
+const trimMayDelete = defineScript({
+  NUMBER_OF_KEYS: 1,
+  SCRIPT: `
+    local version = ARGV[1]
+    redis.call("XTRIM", KEYS[1], "MINID", "~", (version + 1) .. "-0", "LIMIT", "0")
+    if redis.call("XLEN", KEYS[1]) == 0 then
+      redis.call("DEL", KEYS[1])
+      return true
     end
   `,
   transformArguments: () => [], // not needed
@@ -44,7 +75,7 @@ async function pullUpdates(id: string, version: number) {
   };
 }
 
-async function pushUpdates(id: string, version: number, updates: Update[]) {
+async function pushUpdates(id: string, version: number, updates: any[]) {
   console.log(` - pushUpdates(${id}, ${version}, [len: ${updates.length}])`);
   try {
     await redis.executeScript(addUpdates, [
@@ -61,13 +92,19 @@ async function pushUpdates(id: string, version: number, updates: Update[]) {
     }
     throw err;
   }
-  await redis.zAdd("doc-dirty", { score: Date.now(), value: id });
+  await redis.zAdd(
+    "doc-dirty",
+    { score: Date.now() + compactionInterval, value: id },
+    { NX: true }
+  );
   return true;
 }
 
-async function getDocument(id: string, forceSnapshot = false) {
-  console.log(` - getDocuments(${id})`);
-
+async function getDocumentInternal(id: string): Promise<{
+  dbVersion: number;
+  version: number;
+  doc: string;
+}> {
   let version = 0;
   let doc = Text.of(initialText.split("\n"));
 
@@ -86,37 +123,26 @@ async function getDocument(id: string, forceSnapshot = false) {
   for (const u of updates) {
     const changes = ChangeSet.fromJSON(JSON.parse(u.message.d).changes);
     doc = changes.apply(doc);
-    version++;
   }
 
-  // Create a snapshot if there were too many pending changes.
-  const content = doc.toString();
-  if (forceSnapshot || updates.length > 128) {
-    await sql`
-      INSERT INTO
-        documents AS d (id, content, version)
-      VALUES
-        (${id}, ${content}, ${version})
-      ON CONFLICT (id) DO UPDATE SET
-        content = EXCLUDED.content,
-        version = EXCLUDED.version
-      WHERE
-        d.version < ${version}
-    `;
-  }
+  return {
+    dbVersion: version,
+    version: version + updates.length,
+    doc: doc.toString(),
+  };
+}
 
-  return { version, doc: content };
+async function getDocument(id: string) {
+  console.log(` - getDocuments(${id})`);
+  const { version, doc } = await getDocumentInternal(id);
+  return { version, doc };
 }
 
 export function handleMessage(id: string, data: any) {
   if (data.type == "pullUpdates") {
     return pullUpdates(id, data.version);
   } else if (data.type == "pushUpdates") {
-    const updates: Update[] = data.updates.map((u: any) => ({
-      changes: ChangeSet.fromJSON(u.changes),
-      clientID: u.clientID,
-    }));
-    return pushUpdates(id, data.version, updates);
+    return pushUpdates(id, data.version, data.updates);
   } else if (data.type == "getDocument") {
     return getDocument(id);
   } else {
@@ -133,7 +159,9 @@ export async function compactionTask() {
       console.error("Error during compaction:", err.toString());
     }
     // No new documents to clean up, wait for a little bit.
-    await new Promise((resolve) => setTimeout(resolve, 0.2 * compactionDelay));
+    await new Promise((resolve) =>
+      setTimeout(resolve, 0.1 * compactionInterval)
+    );
   }
 }
 
@@ -144,19 +172,39 @@ async function runCompaction() {
       break;
     }
     const { score, value: id } = resp;
-    if (Date.now() - score < compactionDelay) {
-      await redis.zAdd("doc-dirty", { score, value: id }, { NX: true });
+    if (Date.now() < score) {
+      await redis.zAdd("doc-dirty", { score, value: id });
       break;
     }
     console.log(`Compacting doc:${id}`);
     try {
-      const { version } = await getDocument(id, true);
-      await redis.xTrim(`doc:${id}`, "MINID", version + 1, {
-        strategyModifier: "~",
-        LIMIT: 0,
-      });
+      const { dbVersion, version, doc } = await getDocumentInternal(id);
+      if (dbVersion < version) {
+        // Create a checkpoint.
+        await sql`
+          INSERT INTO
+            documents AS d (id, content, version)
+          VALUES
+            (${id}, ${doc}, ${version})
+          ON CONFLICT (id) DO UPDATE SET
+            content = EXCLUDED.content,
+            version = EXCLUDED.version
+          WHERE
+            d.version < ${version}
+        `;
+      }
+      const deleted = await redis.executeScript(trimMayDelete, [
+        `doc:${id}`,
+        dbVersion.toString(),
+      ]);
+      if (!deleted) {
+        await redis.zAdd("doc-dirty", {
+          score: Date.now() + compactionInterval,
+          value: id,
+        });
+      }
     } catch (err: any) {
-      await redis.zAdd("doc-dirty", { score, value: id }, { NX: true });
+      await redis.zAdd("doc-dirty", { score, value: id });
       throw err;
     }
   }

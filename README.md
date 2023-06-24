@@ -3,15 +3,15 @@
 A tiny [collaborative](https://codemirror.net/examples/collab/) Markdown editor
 based on CodeMirror, communicating with a minimal server and database.
 
-Supports multiple real-time documents, with live cursors. Based on CodeMirror's
+Supports multiple real-time documents, with live cursors. Uses CodeMirror's
 operational transformation extension. All changes are resolved by server code,
 fully customizable for needs like authentication and rate limiting. Also, it's
 designed to be as easy to integrate as possible (read: boring). The backend is
 stateless and even avoids WebSockets by relying on HTTP/2.
 
 Unlike most toy examples, this application persists data and cleans up database
-memory. Documents are stored in Postgres, and real-time changes are resolved
-over Redis, with compaction.
+memory. Documents are stored in Postgres, and real-time updates are replicated
+over Redis, with automatic log compaction.
 
 An experiment by [Eric Zhang](https://www.ekzhang.com/).
 
