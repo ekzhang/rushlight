@@ -9,6 +9,13 @@ import { ChangeSet, Text } from "@codemirror/state";
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { nanoid } from "nanoid";
 
+import {
+  addPresence,
+  presenceFromJSON,
+  presencePlugin,
+  presenceToJSON,
+} from "./presence";
+
 /** Simple HTTP-based RPC connection. */
 export class Connection {
   constructor(public endpoint: string) {}
@@ -38,6 +45,7 @@ function pushUpdates(
   let updates = fullUpdates.map((u) => ({
     clientID: u.clientID,
     changes: u.changes.toJSON(),
+    effects: u.effects?.map((e) => presenceToJSON(e.value)),
   }));
   return connection.request({ type: "pushUpdates", version, updates });
 }
@@ -54,6 +62,7 @@ async function pullUpdates(
   return (resp.updates as Update[]).map((u) => ({
     changes: ChangeSet.fromJSON(u.changes),
     clientID: u.clientID,
+    effects: u.effects?.map((e) => addPresence.of(presenceFromJSON(e))),
   }));
 }
 
@@ -79,7 +88,12 @@ export function peerExtension(startVersion: number, connection: Connection) {
       }
 
       update(update: ViewUpdate) {
-        if (update.docChanged) this.push();
+        if (
+          update.docChanged ||
+          update.transactions.some((tr) => tr.effects.length)
+        ) {
+          this.push();
+        }
       }
 
       // Increment the failure count, and sleep with exponential backoff if 3
@@ -131,5 +145,11 @@ export function peerExtension(startVersion: number, connection: Connection) {
       }
     }
   );
-  return [collab({ startVersion }), plugin];
+
+  const collabExtension = collab({
+    startVersion,
+    sharedEffects: (tr) => tr.effects.filter((e) => e.is(addPresence)),
+  });
+
+  return [collabExtension, presencePlugin(), plugin];
 }

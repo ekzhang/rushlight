@@ -71,4 +71,15 @@ export const theme = EditorView.theme({
     fontFamily: `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`,
     // fontFamily: "Menlo, Monaco, Lucida Console, monospace",
   },
+  ".cm-presence": {
+    backgroundColor: "rgba(255, 0, 0, 0.15)",
+  },
+  ".cm-presence-cursor": {
+    display: "inline-block",
+    position: "absolute",
+    borderLeft: "1px solid red",
+    borderRight: "1px solid red",
+    marginTop: "1px",
+    height: "1.2em",
+  },
 });
