@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently -c blue,red \"npm:dev:client\" \"npm:dev:server\"",
     "dev:client": "vite",
-    "dev:server": "nodemon --esm server/main.ts",
+    "dev:server": "nodemon -w server --esm server/main.ts",
     "build": "tsc && vite build",
     "start": "ts-node --esm --transpile-only server/main.ts",
     "format": "prettier --ignore-path .gitignore --write .",

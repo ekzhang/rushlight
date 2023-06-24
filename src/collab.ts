@@ -69,6 +69,7 @@ export function peerExtension(startVersion: number, connection: Connection) {
     class {
       private pushing = false;
       private done = false;
+      private failures = 0;
 
       constructor(private view: EditorView) {
         this.pull();
@@ -78,6 +79,16 @@ export function peerExtension(startVersion: number, connection: Connection) {
         if (update.docChanged) this.push();
       }
 
+      // Increment the failure count, and sleep with exponential backoff if 3
+      // requests fail in a row.
+      async failureSleep() {
+        this.failures++;
+        if (this.failures >= 3) {
+          const delay = Math.pow(1.5, Math.min(this.failures - 3, 7)) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+
       async push() {
         let updates = sendableUpdates(this.view.state);
         if (this.pushing || !updates.length) return;
@@ -85,7 +96,10 @@ export function peerExtension(startVersion: number, connection: Connection) {
         let version = getSyncedVersion(this.view.state);
         try {
           await pushUpdates(connection, version, updates);
-        } catch (e) {} // Ignore failures
+          this.failures = 0;
+        } catch (e) {
+          await this.failureSleep();
+        }
         this.pushing = false;
         // Regardless of whether the push failed or new updates came in
         // while it was running, try again if there's updates remaining
@@ -97,9 +111,13 @@ export function peerExtension(startVersion: number, connection: Connection) {
         while (!this.done) {
           let version = getSyncedVersion(this.view.state);
           try {
+            // Long polling
             let updates = await pullUpdates(connection, version);
+            this.failures = 0;
             this.view.dispatch(receiveUpdates(this.view.state, updates));
-          } catch (e) {} // Ignore failures, long polling
+          } catch (e) {
+            await this.failureSleep();
+          }
         }
       }
 
