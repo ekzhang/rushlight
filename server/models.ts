@@ -6,7 +6,7 @@ const initialText = `# CodeMirror Collaboration
 
 This is a collaborative **Markdown** editor shared by all viewers of this page. You just opened a new document, with your own personal link!
 
-Type here to see the output rendered below.
+Type here, and the output is rendered below. You can see other people's cursors.
 
 Source code is available [here](https://github.com/ekzhang/cm-collab).`;
 
