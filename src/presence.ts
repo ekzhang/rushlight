@@ -90,8 +90,7 @@ const presenceField = StateField.define<PresenceSet>({
     const newPresenceSet = [...byId.values()];
     for (const p of presenceSet) {
       if (p.time >= now - presenceExpiry && !byId.has(p.clientID)) {
-        const selection = p.selection.map(tr.changes, 1);
-        newPresenceSet.push({ ...p, selection });
+        newPresenceSet.push({ ...p, selection: p.selection.map(tr.changes) });
       }
     }
     return newPresenceSet;
