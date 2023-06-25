@@ -6,9 +6,7 @@ import {
 } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import {
-  bracketMatching,
   defaultHighlightStyle,
-  foldKeymap,
   indentOnInput,
   syntaxHighlighting,
 } from "@codemirror/language";
@@ -37,7 +35,7 @@ export const basicSetup = [
   EditorState.allowMultipleSelections.of(true),
   indentOnInput(),
   syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-  bracketMatching(),
+  // bracketMatching(),
   closeBrackets(),
   autocompletion(),
   rectangularSelection(),
@@ -49,7 +47,7 @@ export const basicSetup = [
     ...defaultKeymap,
     ...searchKeymap,
     ...historyKeymap,
-    ...foldKeymap,
+    // ...foldKeymap,
     ...completionKeymap,
     ...lintKeymap,
   ]),
