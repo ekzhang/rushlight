@@ -7,19 +7,16 @@ import {
 } from "@codemirror/collab";
 import { ChangeSet, Text } from "@codemirror/state";
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { nanoid } from "nanoid";
 
 /** Simple HTTP-based RPC connection. */
 export class Connection {
   constructor(public endpoint: string) {}
 
   async request<T extends object, R>(value: T): Promise<R> {
-    const id = nanoid();
     console.log("sending message", value);
-
     const resp = await fetch(this.endpoint, {
       method: "POST",
-      body: JSON.stringify({ id, ...value }),
+      body: JSON.stringify(value),
       headers: { "Content-Type": "application/json" },
     });
     if (resp.status !== 200) {
