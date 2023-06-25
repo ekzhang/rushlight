@@ -105,7 +105,6 @@ export function presencePlugin() {
   const presenceListener = EditorView.updateListener.of((update) => {
     const now = Date.now();
     if (update.selectionSet || now - lastPresence > presenceThrottle) {
-      console.log("selection set!");
       lastPresence = now;
       const myPresence = addPresence.of({
         selection: update.state.selection,
