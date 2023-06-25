@@ -43,10 +43,17 @@ type PresenceWithTime = Presence & { time: number };
 type PresenceSet = PresenceWithTime[];
 
 class CursorWidget extends WidgetType {
+  constructor(readonly hue: number) {
+    super();
+  }
   toDOM(): HTMLElement {
     let el = document.createElement("span");
     el.setAttribute("aria-hidden", "true");
-    el.className = "cm-presence-cursor";
+    el.style.position = "absolute";
+    el.style.borderLeft =
+      el.style.borderRight = `1px solid hsl(${this.hue} 90% 40%)`;
+    el.style.marginTop = "1.5px";
+    el.style.height = "1.2em";
     return el;
   }
   get estimatedHeight(): number {
@@ -85,9 +92,18 @@ const presenceField = StateField.define<PresenceSet>({
     return EditorView.decorations.from(self, (presenceSet: PresenceSet) => {
       const decorations: Range<Decoration>[] = [];
       for (const { selection, clientID } of presenceSet) {
-        void clientID;
-        const cursorWidget = Decoration.widget({ widget: new CursorWidget() });
-        const underlineMark = Decoration.mark({ class: "cm-presence" });
+        // Compute a deterministic number from the client ID.
+        let hue = 0;
+        for (let i = 0; i < clientID.length; i++)
+          hue = Math.imul(hue + clientID.charCodeAt(i), 595438061) % 360;
+        const cursorWidget = Decoration.widget({
+          widget: new CursorWidget(hue),
+        });
+        const underlineMark = Decoration.mark({
+          attributes: {
+            style: `background-color: hsl(${hue} 90% 40% / 0.15)`,
+          },
+        });
         decorations.push(cursorWidget.range(selection.main.head));
         for (const range of selection.ranges) {
           if (!range.empty) {
