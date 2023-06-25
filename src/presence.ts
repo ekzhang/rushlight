@@ -56,6 +56,9 @@ class CursorWidget extends WidgetType {
     el.style.height = "1.2em";
     return el;
   }
+  eq(widget: WidgetType): boolean {
+    return (widget as CursorWidget).hue === this.hue;
+  }
   get estimatedHeight(): number {
     return 0;
   }

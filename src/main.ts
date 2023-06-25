@@ -23,7 +23,7 @@ function setText(text: string) {
 const conn = new Connection("/doc/" + window.location.search.substring(1));
 
 async function main() {
-  let { version, doc } = await getDocument(conn);
+  const { version, doc } = await getDocument(conn);
 
   setText(doc.toString());
 
