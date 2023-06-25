@@ -92,7 +92,7 @@ export function peerExtension(startVersion: number, connection: Connection) {
           update.docChanged ||
           update.transactions.some((tr) => tr.effects.length)
         ) {
-          this.push();
+          setTimeout(() => this.push(), 0);
         }
       }
 

@@ -1,13 +1,19 @@
 import { getClientID } from "@codemirror/collab";
 import {
   EditorSelection,
+  EditorState,
   Range,
   StateEffect,
   StateField,
 } from "@codemirror/state";
-import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import {
+  Decoration,
+  EditorView,
+  ViewPlugin,
+  WidgetType,
+} from "@codemirror/view";
 
-const presenceThrottle = 4000; // Only resend selection every 4 seconds.
+const presenceInterval = 5000; // Resend presence message every 5 seconds.
 const presenceExpiry = 8000; // Presence expires after 8 seconds.
 
 type Presence = {
@@ -67,6 +73,7 @@ class CursorWidget extends WidgetType {
   }
 }
 
+// Store presence information and display it as editor decorations.
 const presenceField = StateField.define<PresenceSet>({
   create() {
     return [];
@@ -83,10 +90,8 @@ const presenceField = StateField.define<PresenceSet>({
     const newPresenceSet = [...byId.values()];
     for (const p of presenceSet) {
       if (p.time >= now - presenceExpiry && !byId.has(p.clientID)) {
-        newPresenceSet.push({
-          ...p,
-          selection: p.selection.map(tr.changes, 1),
-        });
+        const selection = p.selection.map(tr.changes, 1);
+        newPresenceSet.push({ ...p, selection });
       }
     }
     return newPresenceSet;
@@ -119,18 +124,31 @@ const presenceField = StateField.define<PresenceSet>({
   },
 });
 
+// Attach an effect to transactions that set the selection.
+const presenceFilter = EditorState.transactionFilter.of((tr) => {
+  if (tr.selection) {
+    const effect = addPresence.of({
+      selection: tr.selection,
+      clientID: getClientID(tr.state),
+    });
+    return { ...tr, effects: [...tr.effects, effect] };
+  }
+  return tr;
+});
+
+// Send the presence effect at regular intervals.
+const presenceTimer = ViewPlugin.define((view) => {
+  const sendPresence = () => {
+    const effect = addPresence.of({
+      selection: view.state.selection,
+      clientID: getClientID(view.state),
+    });
+    view.dispatch({ effects: effect });
+  };
+  const timer = window.setInterval(sendPresence, presenceInterval);
+  return { destroy: () => window.clearInterval(timer) };
+});
+
 export function presencePlugin() {
-  let lastPresence = 0;
-  const presenceListener = EditorView.updateListener.of((update) => {
-    const now = Date.now();
-    if (update.selectionSet || now - lastPresence > presenceThrottle) {
-      lastPresence = now;
-      const myPresence = addPresence.of({
-        selection: update.state.selection,
-        clientID: getClientID(update.state),
-      });
-      update.view.dispatch({ effects: myPresence });
-    }
-  });
-  return [presenceField, presenceListener];
+  return [presenceField, presenceFilter, presenceTimer];
 }
