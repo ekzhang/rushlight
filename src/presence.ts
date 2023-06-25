@@ -148,6 +148,6 @@ const presenceTimer = ViewPlugin.define((view) => {
   return { destroy: () => window.clearInterval(timer) };
 });
 
-export function presencePlugin() {
+export function presenceExtension() {
   return [presenceField, presenceFilter, presenceTimer];
 }

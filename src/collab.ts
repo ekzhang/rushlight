@@ -11,8 +11,8 @@ import { nanoid } from "nanoid";
 
 import {
   addPresence,
+  presenceExtension,
   presenceFromJSON,
-  presencePlugin,
   presenceToJSON,
 } from "./presence";
 
@@ -151,5 +151,5 @@ export function peerExtension(startVersion: number, connection: Connection) {
     sharedEffects: (tr) => tr.effects.filter((e) => e.is(addPresence)),
   });
 
-  return [collabExtension, presencePlugin(), plugin];
+  return [collabExtension, presenceExtension(), plugin];
 }
