@@ -3,38 +3,37 @@
 **Collaborative text editor on your own infrastructure: just Redis and a
 database.**
 
-Supports multiple real-time documents, with live cursors. Based on CodeMirror's
-operational transformation [extension](https://codemirror.net/examples/collab/),
-so all changes are resolved by server code. Also, it's designed to be as easy to
-integrate as possible (read: boring, non-proprietary). The backend is stateless,
-and _you can bring your own transport_; even a single HTTP handler is enough!
+Supports multiple real-time documents, with live cursors. Based on
+[CodeMirror](https://codemirror.net/)'s operational transformation
+[extension](https://codemirror.net/examples/collab/), so all changes are
+resolved by server code. Also, it's designed to be as easy to integrate as
+possible (read: boring). The backend is stateless, and _you can bring your own
+transport_; even a single HTTP handler is enough!
 
 Unlike most toy examples, this library supports persistence in any durable
-database you choose. Real-time updates are replicated using Redis, with
-automatic log compaction.
+database you choose. Real-time updates are replicated by Redis, with automatic
+log compaction.
 
 An experiment by [Eric Zhang](https://www.ekzhang.com/), author of
 [Rustpad](https://github.com/ekzhang/rustpad).
 
 ## Motivation
 
-Real-time collaborative text editing is useful for a lot of applications.
-Typically it's embedded within a larger website. However, existing methods make
-this difficult because they:
+Real-time collaborative editing can be embedded in many web applications, where
+you generally already have a database. However, most libraries are unsuitable
+because they:
 
 - Require proprietary gadgets
-- Are not flexible enough to customize appearance
+- Are not flexible enough, e.g., to customize appearance
 - Make you subscribe to a cloud service where you can't control the data
-- Use decentralized algorithms like CRDTs where it's _really_ difficult to
-  control the data
+- Use decentralized algorithms like CRDTs that are hard to reason about
+- Make it difficult to authenticate users or apply rate limits
 - Rely on a single stateful server, which breaks with replication / horizontal
   autoscaling
-- Make it hard to authenticate users or apply rate limits
-- Require WebSockets or other protocols that aren't supported by some providers
+- Need WebSockets or other protocols that aren't supported by some providers
 - Are just generally too opinionated
 
-I was frustrated, as someone who makes a lot of collaborative apps, so I ended
-up writing my own library.
+I work on a lot of collaborative apps, so this is my take on a better approach.
 
 ## Usage
 
@@ -119,9 +118,11 @@ app.post("/doc/:id", express.json(), async (req, res) => {
 app.listen(8080);
 ```
 
-That's it! To view a full demo application, a collaborative Markdown editor
-using Postgres to store documents, see the [`app/`](app/) folder in this
-repository.
+That's it! See the `ClientOptions` and `ServerOptions` types for more
+configuration options.
+
+To view a full demo application, a collaborative Markdown editor using Postgres
+to store documents, see the [`app/`](app/) folder in this repository.
 
 ## Development
 
