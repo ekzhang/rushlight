@@ -1,13 +1,13 @@
 {
-  "name": "cm-collab",
+  "name": "rushlight-server",
   "version": "0.0.1",
   "license": "MIT",
-  "description": "Collaborative text editing client for CodeMirror 6",
+  "description": "Collaborative text editing server for CodeMirror 6",
   "author": "Eric Zhang <ekzhang1@gmail.com> (https://www.ekzhang.com)",
   "funding": "https://github.com/sponsors/ekzhang",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ekzhang/cm-collab.git"
+    "url": "https://github.com/ekzhang/rushlight.git"
   },
   "sideEffects": false,
   "files": [
@@ -27,9 +27,8 @@
     "dev": "npm run build -- --watch"
   },
   "dependencies": {
-    "@codemirror/collab": "^6.0.0",
     "@codemirror/state": "^6.2.1",
-    "@codemirror/view": "^6.13.2"
+    "@redis/client": "^1.5.8"
   },
   "devDependencies": {
     "tsup": "^7.1.0",

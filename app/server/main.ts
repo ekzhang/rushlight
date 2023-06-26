@@ -1,5 +1,5 @@
-import { CollabServer } from "cm-collab-server";
 import express from "express";
+import { CollabServer } from "rushlight-server";
 
 import { loadCheckpoint, saveCheckpoint } from "./db.ts";
 

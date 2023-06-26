@@ -1,9 +1,9 @@
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorView } from "@codemirror/view";
-import { CollabClient } from "cm-collab";
 import { nanoid } from "nanoid";
 import remarkHtml from "remark-html";
 import remarkParse from "remark-parse";
+import { CollabClient } from "rushlight";
 import { unified } from "unified";
 
 import { basicSetup, theme } from "./cmConfig";

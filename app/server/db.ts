@@ -1,5 +1,5 @@
-import { Checkpoint } from "cm-collab-server";
 import postgres from "postgres";
+import { Checkpoint } from "rushlight-server";
 
 const databaseUrl =
   process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:6472";
@@ -14,13 +14,13 @@ await sql`
   );
 `;
 
-const initialText = `# CodeMirror Collaboration
+const initialText = `# Rushlight Demo
 
 This is a collaborative **Markdown** editor shared by all viewers of this page. You just opened a new document, with your own personal link!
 
 Type here, and the output is rendered below. You can see other people's cursors.
 
-Source code is available [here](https://github.com/ekzhang/cm-collab).`;
+Source code is available [here](https://github.com/ekzhang/rushlight).`;
 
 /** Load a saved document checkpoint. */
 export async function loadCheckpoint(id: string) {
