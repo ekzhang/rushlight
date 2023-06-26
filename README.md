@@ -33,7 +33,7 @@ because they:
 - Need WebSockets or other protocols that aren't supported by some providers
 - Are just generally too opinionated
 
-I work on a lot of collaborative apps, so this is my take on a better approach.
+This library tries to take a different approach.
 
 ## Usage
 
@@ -140,7 +140,7 @@ The demo application requires Node.js version 18 or higher and Docker Compose.
 
 ```bash
 docker compose up
-npm run dev -w=app
+npm run dev
 ```
 
 Visit `http://localhost:6480` in your browser.

@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo build",
     "lint": "turbo lint",
+    "dev": "FORCE_COLOR=1 turbo dev",
     "format": "prettier --ignore-path .gitignore --write .",
     "format:check": "prettier --ignore-path .gitignore --check ."
   },

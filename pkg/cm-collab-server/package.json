@@ -23,7 +23,8 @@
   },
   "scripts": {
     "lint": "tsc",
-    "build": "tsup index.ts --format cjs,esm --dts"
+    "build": "tsup index.ts --format cjs,esm --dts",
+    "dev": "npm run build -- --watch"
   },
   "dependencies": {
     "@codemirror/state": "^6.2.1",
