@@ -29,11 +29,10 @@ function pushUpdates(
 async function pullUpdates(
   connection: Connection,
   version: number
-): Promise<readonly Update[]> {
+): Promise<"desync" | readonly Update[]> {
   const resp: any = await connection({ type: "pullUpdates", version });
   if (resp.status === "desync") {
-    window.alert("Server out of sync, reloading to recover");
-    window.location.reload();
+    return "desync";
   }
   return (resp.updates as Update[]).map((u) => ({
     changes: ChangeSet.fromJSON(u.changes),
@@ -95,25 +94,48 @@ export function peerExtension(startVersion: number, connection: Connection) {
           await this.failureSleep();
         }
         this.pushing = false;
-        // Regardless of whether the push failed or new updates came in
-        // while it was running, try again if there's updates remaining
+        // Regardless of whether the push failed or new updates came in while it
+        // was running, try again if there's updates remaining.
         if (sendableUpdates(this.view.state).length)
           setTimeout(() => this.push(), 100);
       }
 
       async pull() {
         while (!this.done) {
-          let version = getSyncedVersion(this.view.state);
+          const version = getSyncedVersion(this.view.state);
           try {
-            // Long polling
-            let updates = await pullUpdates(connection, version);
+            const updates = await pullUpdates(connection, version);
             this.failures = 0;
-            this.view.dispatch(receiveUpdates(this.view.state, updates));
+            if (updates === "desync") {
+              // This requires a full document reload. It only happens in rare
+              // cases when network connection is lost for a long time.
+              await this.fullReload();
+            } else {
+              this.view.dispatch(receiveUpdates(this.view.state, updates));
+            }
           } catch (e) {
             console.error(e);
             await this.failureSleep();
           }
         }
+      }
+
+      async fullReload() {
+        const { version, doc } = await getDocument(connection);
+        const oldVersion = getSyncedVersion(this.view.state);
+        const oldLength = sendableUpdates(this.view.state).reduce(
+          (sum, u) => sum - u.changes.newLength + u.changes.length,
+          this.view.state.doc.length
+        );
+        // Reload the document and bump its version to the latest.
+        const changeSets: ChangeSet[] = [
+          ChangeSet.of([{ from: 0, to: oldLength, insert: doc }], oldLength),
+        ];
+        for (let i = 1; i < version - oldVersion; i++) {
+          changeSets.push(ChangeSet.empty(doc.length));
+        }
+        const updates = changeSets.map((c) => ({ changes: c, clientID: "" }));
+        this.view.dispatch(receiveUpdates(this.view.state, updates));
       }
 
       destroy() {
