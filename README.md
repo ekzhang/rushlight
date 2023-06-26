@@ -5,14 +5,14 @@ library based on CodeMirror and Redis, with client and server.
 
 Supports multiple real-time documents, with live cursors. Uses CodeMirror's
 operational transformation extension. All changes are resolved by server code,
-fully customizable for needs like authentication and rate limiting. Also, it's
-designed to be as easy to integrate as possible (read: boring, non-proprietary).
-The backend is stateless, using Redis, and _you bring your own transport_; even
-a single HTTP handler is enough!
+flexible for needs like authentication and rate limiting. Also, it's designed to
+be as easy to integrate as possible (read: boring, non-proprietary). The backend
+is stateless, using Redis, and _you can bring your own transport_; even a single
+HTTP handler is enough!
 
-Unlike most toy examples, this library supports persistence in any database you
-choose. Documents are stored in Postgres, and real-time updates are replicated
-over Redis, with automatic log compaction.
+Unlike most toy examples, this library supports durable persistence in any
+database you choose. Documents are stored in Postgres, and real-time updates are
+replicated over Redis, with automatic log compaction.
 
 An experiment by [Eric Zhang](https://www.ekzhang.com/).
 
