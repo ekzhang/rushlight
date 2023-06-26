@@ -10,8 +10,8 @@ changes are resolved by server code. It's designed to be as easy to integrate as
 possible (read: boring). The backend is stateless, and _you can bring your own
 transport_; even a single HTTP handler is enough.
 
-Unlike most toy examples, this library supports persistence in any durable
-database you choose. Real-time updates are replicated by Redis, with automatic
+Unlike most toy examples, Rushlight supports persistence in any durable database
+you choose. Real-time updates are replicated in-memory by Redis, with automatic
 log compaction.
 
 An experiment by [Eric Zhang](https://www.ekzhang.com/), author of
@@ -33,7 +33,7 @@ unsuitable because they:
 - Need WebSockets or other protocols that aren't supported by some providers
 - Are just generally too opinionated
 
-This library tries to take a different approach.
+This library tries to take a more practical approach.
 
 ## Usage
 
