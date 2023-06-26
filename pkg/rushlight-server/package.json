@@ -1,8 +1,13 @@
 {
   "name": "rushlight-server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "description": "Collaborative text editing server for CodeMirror 6",
+  "keywords": [
+    "codemirror",
+    "editor",
+    "collaboration"
+  ],
   "author": "Eric Zhang <ekzhang1@gmail.com> (https://www.ekzhang.com)",
   "funding": "https://github.com/sponsors/ekzhang",
   "repository": {
@@ -11,6 +16,7 @@
   },
   "sideEffects": false,
   "files": [
+    "README.md",
     "dist"
   ],
   "type": "module",

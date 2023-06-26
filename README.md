@@ -1,7 +1,7 @@
 # 🕯️ Rushlight
 
-_Make collaborative text editors on your own infrastructure: just Redis and a
-database._
+_Make collaborative code editors that run on your own infrastructure: just Redis
+and a database._
 
 Supports multiple real-time documents, with live cursors. Based on
 [CodeMirror 6](https://codemirror.net/) and
