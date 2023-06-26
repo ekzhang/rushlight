@@ -3,6 +3,10 @@
 _Make collaborative code editors that run on your own infrastructure: just Redis
 and a database._
 
+<p align="center">
+<img src="https://i.imgur.com/FaJUXrI.gif" width="720">
+</p>
+
 Supports multiple real-time documents, with live cursors. Based on
 [CodeMirror 6](https://codemirror.net/) and
 [operational transformation](https://codemirror.net/examples/collab/), so all
