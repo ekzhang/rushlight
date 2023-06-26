@@ -8,30 +8,9 @@ import {
 import { ChangeSet, Text } from "@codemirror/state";
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 
-import {
-  addPresence,
-  presenceExtension,
-  presenceFromJSON,
-  presenceToJSON,
-} from "./presence";
+import { addPresence, presenceFromJSON, presenceToJSON } from "./presence";
 
-/** Simple HTTP-based RPC connection. */
-export class Connection {
-  constructor(public endpoint: string) {}
-
-  async request<T extends object, R>(value: T): Promise<R> {
-    console.log("sending message", value);
-    const resp = await fetch(this.endpoint, {
-      method: "POST",
-      body: JSON.stringify(value),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (resp.status !== 200) {
-      throw new Error(`Request failed with status ${resp.status}`);
-    }
-    return await resp.json();
-  }
-}
+export type Connection = <T extends object, R>(value: T) => Promise<R>;
 
 function pushUpdates(
   connection: Connection,
@@ -44,14 +23,14 @@ function pushUpdates(
     changes: u.changes.toJSON(),
     effects: u.effects?.map((e) => presenceToJSON(e.value)),
   }));
-  return connection.request({ type: "pushUpdates", version, updates });
+  return connection({ type: "pushUpdates", version, updates });
 }
 
 async function pullUpdates(
   connection: Connection,
   version: number
 ): Promise<readonly Update[]> {
-  const resp: any = await connection.request({ type: "pullUpdates", version });
+  const resp: any = await connection({ type: "pullUpdates", version });
   if (resp.status === "desync") {
     window.alert("Server out of sync, reloading to recover");
     window.location.reload();
@@ -66,7 +45,7 @@ async function pullUpdates(
 export async function getDocument(
   connection: Connection
 ): Promise<{ version: number; doc: Text }> {
-  const data: any = await connection.request({ type: "getDocument" });
+  const data: any = await connection({ type: "getDocument" });
   return {
     version: data.version,
     doc: Text.of(data.doc.split("\n")),
@@ -148,5 +127,5 @@ export function peerExtension(startVersion: number, connection: Connection) {
     sharedEffects: (tr) => tr.effects.filter((e) => e.is(addPresence)),
   });
 
-  return [collabExtension, presenceExtension(), plugin];
+  return [collabExtension, plugin];
 }
