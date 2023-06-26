@@ -149,8 +149,8 @@ export function presenceExtension(
       });
       view.dispatch({ effects: effect });
     };
-    const timer = window.setInterval(sendPresence, presenceInterval);
-    return { destroy: () => window.clearInterval(timer) };
+    const timer = setInterval(sendPresence, presenceInterval);
+    return { destroy: () => clearInterval(timer) };
   });
 
   return [presenceField, presenceFilter, presenceTimer];

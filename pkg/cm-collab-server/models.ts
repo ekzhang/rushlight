@@ -27,13 +27,16 @@ const trimMayDelete = defineScript({
 });
 
 export class Streams {
-  constructor(private redis: ReturnType<typeof createClient>) {}
+  constructor(
+    private redis: ReturnType<typeof createClient>,
+    private prefix: string
+  ) {}
 
   /** Read document updates newer than a version, optionally blocking if there are none. */
   async read(id: string, version: number, blocking?: number) {
     const entries = await this.redis.executeIsolated((redis) =>
       redis.xRead(
-        { key: `doc:${id}`, id: `${version}-0` },
+        { key: `${this.prefix}:${id}`, id: `${version}-0` },
         { BLOCK: blocking, COUNT: 1024 }
       )
     );
@@ -48,7 +51,7 @@ export class Streams {
   async add(id: string, version: number, updates: any[]) {
     try {
       await this.redis.executeScript(addUpdates, [
-        `doc:${id}`,
+        `${this.prefix}:${id}`,
         version.toString(),
         ...updates.map((u) => JSON.stringify(u)),
       ]);
@@ -67,7 +70,7 @@ export class Streams {
   /** Remove document updates older than a version. */
   async trim(id: string, version: number) {
     const resp = await this.redis.executeScript(trimMayDelete, [
-      `doc:${id}`,
+      `${this.prefix}:${id}`,
       version.toString(),
     ]);
     return Boolean(resp);
@@ -75,12 +78,15 @@ export class Streams {
 }
 
 export class Dirty {
-  constructor(private redis: ReturnType<typeof createClient>) {}
+  constructor(
+    private redis: ReturnType<typeof createClient>,
+    private prefix: string
+  ) {}
 
   /** Mark a document for compaction at a given timestamp. */
   async enqueue(id: string, time: number, notExists?: boolean) {
     await this.redis.zAdd(
-      "doc-dirty",
+      `${this.prefix}-dirty`,
       { score: time, value: id },
       notExists ? { NX: true } : undefined
     );
@@ -88,7 +94,7 @@ export class Dirty {
 
   /** Return the next document that is marked for compaction. */
   async dequeue() {
-    const resp = await this.redis.zPopMin("doc-dirty");
+    const resp = await this.redis.zPopMin(`${this.prefix}-dirty`);
     return resp ? { id: resp.value, time: resp.score } : null;
   }
 }

@@ -59,12 +59,16 @@ export type ServerOptions = {
 
   /** The maximum number of Redis connections for long polling. */
   readonly blockingPoolSize?: number;
+
+  /** Prefix used for keys in Redis. */
+  readonly keyPrefix?: string;
 };
 
 const defualtOptions = {
   compactionInterval: 1000 * 30, // 30 seconds
   blockingMs: 1000 * 5, // 5 seconds
   blockingPoolSize: 2048,
+  keyPrefix: "doc",
 };
 
 export class CollabServer {
@@ -85,7 +89,11 @@ export class CollabServer {
     });
     redis.on("error", console.error);
     await redis.connect();
-    return new CollabServer(opts, new Streams(redis), new Dirty(redis));
+    return new CollabServer(
+      opts,
+      new Streams(redis, opts.keyPrefix),
+      new Dirty(redis, opts.keyPrefix)
+    );
   }
 
   /** Handle an incoming collaboration message. */
