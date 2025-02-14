@@ -9,7 +9,7 @@
     "dev:server": "nodemon -w server --esm server/main.ts",
     "lint": "tsc",
     "build": "vite build",
-    "start": "ts-node --esm --transpile-only server/main.ts",
+    "start": "node --loader ts-node/esm server/main.ts",
     "format": "prettier --ignore-path .gitignore --write .",
     "format:check": "prettier --ignore-path .gitignore --check ."
   },
