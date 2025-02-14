@@ -75,6 +75,7 @@ const rushlight = await CollabClient.of({
 });
 
 const view = new EditorView({
+  doc: rushlight.initialDoc,
   extensions: [
     // ...
     rushlight,
