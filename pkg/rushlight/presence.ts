@@ -16,12 +16,14 @@ import {
 
 export type Presence = {
   selection: EditorSelection;
+  focused: boolean;
   clientID: string;
 };
 
-export function presenceToJSON({ selection, clientID }: Presence) {
+export function presenceToJSON({ selection, focused, clientID }: Presence) {
   return {
     selection: selection.toJSON(),
+    focused,
     clientID,
   };
 }
@@ -29,14 +31,16 @@ export function presenceToJSON({ selection, clientID }: Presence) {
 export function presenceFromJSON(value: any) {
   return {
     selection: EditorSelection.fromJSON(value.selection),
+    focused: value.focused,
     clientID: value.clientID,
   };
 }
 
 export const addPresence = StateEffect.define<Presence>({
-  map({ selection, clientID }: Presence, changes) {
+  map({ selection, focused, clientID }: Presence, changes) {
     return {
       selection: selection.map(changes),
+      focused,
       clientID,
     };
   },
@@ -73,7 +77,10 @@ class CursorWidget extends WidgetType {
 
 export function defaultDecorations(presences: Presence[]) {
   const decorations: Range<Decoration>[] = [];
-  for (const { selection, clientID } of presences) {
+  for (const { selection, focused, clientID } of presences) {
+    // Ignore selections when the editor is not focused.
+    if (!focused) continue;
+
     // Compute a deterministic number from the client ID.
     let hue = 0;
     for (let i = 0; i < clientID.length; i++)
@@ -133,6 +140,7 @@ export function presenceExtension(
     if (tr.selection) {
       const effect = addPresence.of({
         selection: tr.selection,
+        focused: true,
         clientID: getClientID(tr.state),
       });
       return { ...tr, effects: [...tr.effects, effect] };
@@ -140,18 +148,32 @@ export function presenceExtension(
     return tr;
   });
 
-  // Send the presence effect at regular intervals.
+  const sendPresence = (view: EditorView) => {
+    const effect = addPresence.of({
+      selection: view.state.selection,
+      focused: view.hasFocus,
+      clientID: getClientID(view.state),
+    });
+    view.dispatch({ effects: effect });
+  };
+
+  // Send the presence effect at regular intervals to maintain liveness, but
+  // only while the editor is focused.
   const presenceTimer = ViewPlugin.define((view) => {
-    const sendPresence = () => {
-      const effect = addPresence.of({
-        selection: view.state.selection,
-        clientID: getClientID(view.state),
-      });
-      view.dispatch({ effects: effect });
-    };
-    const timer = setInterval(sendPresence, presenceInterval);
+    const timer = setInterval(() => {
+      if (view.hasFocus) {
+        sendPresence(view);
+      }
+    }, presenceInterval);
     return { destroy: () => clearInterval(timer) };
   });
 
-  return [presenceField, presenceFilter, presenceTimer];
+  // Send the presence effect when the editor is blurred.
+  const presenceBlur = EditorView.domEventHandlers({
+    blur: (_event, view) => {
+      sendPresence(view);
+    },
+  });
+
+  return [presenceField, presenceFilter, presenceTimer, presenceBlur];
 }
