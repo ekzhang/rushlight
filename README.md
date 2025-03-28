@@ -137,11 +137,11 @@ TypeScript files, just run:
 
 ```bash
 npm install
-npm run lint
 npm run build
+npm run lint
 ```
 
-The demo application requires Node.js version 18 or higher and Docker Compose.
+The demo application requires Node.js version 22 or higher and Docker Compose.
 
 ```bash
 docker compose up

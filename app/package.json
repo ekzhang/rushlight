@@ -9,9 +9,7 @@
     "dev:server": "nodemon -w server --esm server/main.ts",
     "lint": "tsc",
     "build": "vite build",
-    "start": "node --loader ts-node/esm server/main.ts",
-    "format": "prettier --ignore-path .gitignore --write .",
-    "format:check": "prettier --ignore-path .gitignore --check ."
+    "start": "node --loader ts-node/esm server/main.ts"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.8.0",
@@ -33,20 +31,11 @@
     "unified": "^10.1.2"
   },
   "devDependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^4.1.1",
     "@types/express": "^4.17.17",
     "@types/node": "^20.3.1",
     "concurrently": "^8.2.0",
     "nodemon": "^2.0.22",
-    "typescript": "~5.1.3",
+    "typescript": "~5.1.6",
     "vite": "^4.3.9"
-  },
-  "prettier": {
-    "proseWrap": "always",
-    "importOrder": [
-      "^[./]"
-    ],
-    "importOrderSeparation": true,
-    "importOrderSortSpecifiers": true
   }
 }
