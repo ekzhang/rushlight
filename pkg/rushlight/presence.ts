@@ -137,7 +137,7 @@ export function presenceExtension(
 
   // Attach an effect to transactions that set the selection.
   const presenceFilter = EditorState.transactionFilter.of((tr) => {
-    if (tr.selection) {
+    if (tr.selection && !tr.state.readOnly) {
       const effect = addPresence.of({
         selection: tr.selection,
         focused: true,
@@ -161,7 +161,7 @@ export function presenceExtension(
   // only while the editor is focused.
   const presenceTimer = ViewPlugin.define((view) => {
     const timer = setInterval(() => {
-      if (view.hasFocus) {
+      if (view.hasFocus && !view.state.readOnly) {
         sendPresence(view);
       }
     }, presenceInterval);
@@ -171,7 +171,9 @@ export function presenceExtension(
   // Send the presence effect when the editor is blurred.
   const presenceBlur = EditorView.domEventHandlers({
     blur: (_event, view) => {
-      sendPresence(view);
+      if (!view.state.readOnly) {
+        sendPresence(view);
+      }
     },
   });
 
