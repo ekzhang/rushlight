@@ -1,6 +1,6 @@
 {
   "name": "rushlight",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "description": "Collaborative text editing client for CodeMirror 6",
   "keywords": [
